@@ -1,0 +1,23 @@
+[package]
+name = "marky"
+version = "0.1.0"
+edition = "2024"
+authors = ["Nishant Joshi"]
+
+[dependencies]
+tower-lsp = "0.20.0"
+tokio = { version = "1.44.2", features = ["full"] }
+anyhow = "1.0.98"
+async-trait = "0.1.88"
+
+
+ollama-rs = "0.3.0"
+faiss = "0.12.1"
+
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+toml = "0.8.20"
+
+[[bin]]
+name = "marky-stdio"
+path = "src/bin/marky-stdio.rs"
