@@ -150,5 +150,6 @@ cargo build
 # Build for release
 cargo build --release
 ```
+---
 
 <p align="center">Built by Human, Documented by LLM.</p>
