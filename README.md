@@ -151,8 +151,4 @@ cargo build
 cargo build --release
 ```
 
-## License
-
-[MIT License](LICENSE)
-
 <p align="center">Built by Human, Documented by LLM.</p>
