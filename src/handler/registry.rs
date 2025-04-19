@@ -1,7 +1,4 @@
-use std::{
-    cell::OnceCell,
-    sync::{Arc, RwLock},
-};
+use std::sync::Arc;
 
 use dashmap::DashMap;
 use rust_bert::pipelines::keywords_extraction::KeywordExtractionModel;

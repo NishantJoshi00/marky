@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[async_trait::async_trait]
 pub trait Embedding {
     async fn embed(&self, text: String) -> anyhow::Result<Vec<f32>> {
@@ -26,6 +27,7 @@ impl Default for Config {
     }
 }
 
+#[allow(dead_code)]
 pub enum Client {
     Ollama(ollama::Client),
 }

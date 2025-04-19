@@ -10,6 +10,7 @@ mod embedding;
 pub mod handler;
 mod llm;
 
+#[allow(dead_code)]
 enum Artifacts {
     Lazy,
     Loaded {
@@ -18,6 +19,7 @@ enum Artifacts {
     },
 }
 
+#[allow(dead_code)]
 impl Artifacts {
     pub fn activate(&mut self, config: config::Config) -> anyhow::Result<()> {
         if let Artifacts::Lazy = self {
