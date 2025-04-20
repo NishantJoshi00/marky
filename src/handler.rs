@@ -155,6 +155,9 @@ impl Handle {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::ensure;
+
+    #[allow(clippy::indexing_slicing)]
     #[tokio::test]
     async fn test_markdown_parser() -> anyhow::Result<()> {
         let code = [
@@ -184,15 +187,17 @@ mod tests {
         parser.set_language(tree_sitter_md::language())?;
 
         let handle = super::Handle::new(&code, &mut parser)?;
-        let blocks = handle.blocks.read().expect("Failed to read blocks");
+        let blocks = handle
+            .blocks
+            .read()
+            .map_err(|_| anyhow::anyhow!("Failed while reading the blocks"))?;
 
-        assert_eq!(blocks.len(), 10);
-        assert_eq!(blocks[0].text, "Title");
-        assert_eq!(blocks[5].stat.lines, 2);
-        assert_eq!(blocks[5].stat.words, 19);
-        assert_eq!(blocks[5].stat.avg_line_size, 9.5);
+        ensure!(blocks.len() == 10);
+        ensure!(blocks[0].text == "Title");
+        ensure!(blocks[5].stat.lines == 2);
+        ensure!(blocks[5].stat.words == 19);
+        ensure!(blocks[5].stat.avg_line_size == 9.5);
 
-        println!("{:#?}", blocks);
         Ok(())
     }
 
