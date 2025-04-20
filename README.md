@@ -87,6 +87,8 @@ Marky can be configured through the LSP initialization options:
 
 ## Editor Integration
 
+Marky communicates via stdio following the Language Server Protocol, making it compatible with any editor that supports LSP clients. Below are specific setup instructions for some popular editors:
+
 ### Neovim (with nvim-lspconfig)
 
 Add the following to your Neovim configuration:
@@ -134,6 +136,14 @@ marky_handler()
 ### VSCode
 
 VSCode support is planned but not yet implemented.
+
+### Other LSP-compatible Editors
+
+Marky can be integrated with any editor that supports LSP clients. The general configuration needs:
+
+- Command: Path to `marky-stdio` binary
+- Language IDs: `markdown`, `md`
+- Optional: LSP initialization options for embedding and LLM configuration
 
 ## Usage
 
