@@ -4,7 +4,6 @@ use dashmap::DashMap;
 
 use rust_bert::pipelines::keywords_extraction::KeywordExtractionModel;
 
-
 const SUMMARY_THRESHOLD: usize = 100;
 
 #[derive(Clone)]
@@ -25,10 +24,8 @@ impl Registry {
         }
     }
 
-    pub fn index_text(&self, content: &[super::Block]) -> anyhow::Result<()> {
+    pub fn keyword_text(&self, content: &[super::Block]) -> anyhow::Result<()> {
         let model = KeywordExtractionModel::new(Default::default())?;
-        let summary_model =
-            rust_bert::pipelines::summarization::SummarizationModel::new(Default::default())?;
 
         for block in content {
             self.reverse_index
@@ -40,8 +37,22 @@ impl Registry {
                 self.keyword_registry
                     .insert(block.metadata.hash, self.generate_keywords(block, &model)?);
             }
+        }
 
-            if self.summary_registry.contains_key(&block.metadata.hash) || block.stat.words < SUMMARY_THRESHOLD {
+        Ok(())
+    }
+
+    pub fn summarize_text(&self, content: &[super::Block]) -> anyhow::Result<()> {
+        let summary_model =
+            rust_bert::pipelines::summarization::SummarizationModel::new(Default::default())?;
+
+        for block in content {
+            self.reverse_index
+                .insert(block.metadata.hash, block.clone());
+
+            if self.summary_registry.contains_key(&block.metadata.hash)
+                || block.stat.words < SUMMARY_THRESHOLD
+            {
                 continue;
             } else {
                 let summary = summary_model.summarize(&[block.text.clone()])?;
