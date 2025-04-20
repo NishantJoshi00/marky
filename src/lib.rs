@@ -10,6 +10,9 @@ mod embedding;
 pub mod handler;
 mod llm;
 
+#[macro_use]
+mod logging;
+
 #[allow(dead_code)]
 enum Artifacts {
     Lazy,
@@ -22,32 +25,32 @@ enum Artifacts {
 #[allow(dead_code)]
 impl Artifacts {
     pub fn activate(&mut self, config: config::Config) -> anyhow::Result<()> {
-        if let Artifacts::Lazy = self {
+        if let Self::Lazy = self {
             let embedding = embedding::Client::new(config.embedding);
             let llm = llm::Client::new(config.llm);
 
-            *self = Artifacts::Loaded { embedding, llm };
+            *self = Self::Loaded { embedding, llm };
         }
         Ok(())
     }
 
     pub fn llm(&self) -> anyhow::Result<&llm::Client> {
         match self {
-            Artifacts::Lazy => {
+            Self::Lazy => {
                 debug_assert!(false, "LLM client not initialized");
                 anyhow::bail!("LLM client not initialized");
             }
-            Artifacts::Loaded { llm, .. } => Ok(llm),
+            Self::Loaded { llm, .. } => Ok(llm),
         }
     }
 
     pub fn embedding(&self) -> anyhow::Result<&embedding::Client> {
         match self {
-            Artifacts::Lazy => {
+            Self::Lazy => {
                 debug_assert!(false, "Embedding client not initialized");
                 anyhow::bail!("Embedding client not initialized");
             }
-            Artifacts::Loaded { embedding, .. } => Ok(embedding),
+            Self::Loaded { embedding, .. } => Ok(embedding),
         }
     }
 }
@@ -140,6 +143,7 @@ impl LanguageServer for Backend {
         let loc = params.text_document_position_params.position;
 
         if let Some(handle) = self.project.current_file.read().await.as_ref() {
+            #[allow(clippy::as_conversions)]
             let block = handle.get_block(loc.line as usize, loc.character as usize);
             if let Some(block) = block {
                 let stats = [
@@ -187,31 +191,42 @@ impl LanguageServer for Backend {
         self.client
             .log_message(
                 lsp_types::MessageType::INFO,
-                format!("Opened file: {}", params.text_document.uri),
+                format!("[START] didOpen - {}", params.text_document.uri),
             )
             .await;
 
         let contents = params.text_document.text;
 
         let mut parser = tree_sitter::Parser::new();
-        parser.set_language(tree_sitter_md::language()).unwrap();
+        if parser.set_language(tree_sitter_md::language()).is_err() {
+            error!(self, "Failed to set language");
+            return;
+        }
 
-        self.client
-            .log_message(lsp_types::MessageType::INFO, "Parsing file")
-            .await;
+        info!(self, "parsing file: {}", params.text_document.uri);
 
-        let handle = handler::Handle::new(&contents, &mut parser).unwrap();
+        let handle = match handler::Handle::new(&contents, &mut parser) {
+            Ok(handle) => handle,
+            Err(e) => {
+                error!(self, "Failed to parse file: {}", e);
+                return;
+            }
+        };
+
+        info!(self, "parsed file: {}", params.text_document.uri);
+
         if let Ok(blocks) = handle.blocks.clone().read() {
             let registry = self.project.registry.clone();
             let blocks = blocks.clone();
+
             task::spawn_blocking(move || {
                 let _ = registry.index_text(&blocks);
             });
+        } else {
+            error!(self, "Failed to read blocks");
         }
 
-        self.client
-            .log_message(lsp_types::MessageType::INFO, "Parsed file")
-            .await;
+        info!(self, "[END] didOpen - {}", params.text_document.uri);
 
         self.project.current_file.write().await.replace(handle);
     }
@@ -219,15 +234,25 @@ impl LanguageServer for Backend {
     async fn did_change(&self, changes: lsp_types::DidChangeTextDocumentParams) {
         let content = changes.content_changes.first();
 
+        info!(self, "[START] didChange - {}", changes.text_document.uri);
+
         if let Some(content) = content {
             let text = content.text.clone();
             let mut parser = tree_sitter::Parser::new();
-            parser.set_language(tree_sitter_md::language()).unwrap();
+            if parser.set_language(tree_sitter_md::language()).is_err() {
+                error!(self, "Failed to set language");
+                return;
+            }
 
             let mut handle = self.project.current_file.write().await;
             if let Some(handle) = handle.as_mut() {
-                handle.update(&text, &mut parser).unwrap();
+                if handle.update(&text, &mut parser).is_err() {
+                    error!(self, "Failed to update file: {}", changes.text_document.uri);
+                    return;
+                }
             }
+        } else {
+            warn!(self, "No content changes found");
         }
     }
 }

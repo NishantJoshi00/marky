@@ -34,7 +34,9 @@ pub struct Metadata {
 
 impl Handle {
     pub fn new(text: &str, parser: &mut tree_sitter::Parser) -> anyhow::Result<Self> {
-        let tree = parser.parse(text, None).unwrap();
+        let tree = parser
+            .parse(text, None)
+            .ok_or_else(|| anyhow::anyhow!("Failed to parse the text with the parser"))?;
         let root_node = tree.root_node();
         let mut blocks = Vec::new();
         Self::construct_blocks(&root_node, &mut blocks, text)?;
@@ -49,7 +51,9 @@ impl Handle {
             .tree
             .write()
             .map_err(|_| anyhow::anyhow!("Failed while writing to the tree"))?;
-        *tree = parser.parse(text, Some(&tree)).unwrap();
+        *tree = parser
+            .parse(text, Some(&tree))
+            .ok_or_else(|| anyhow::anyhow!("Failed to parse the text with the parser"))?;
 
         let mut blocks = self
             .blocks
@@ -63,7 +67,7 @@ impl Handle {
     }
 
     fn construct_blocks(
-        node: &tree_sitter::Node,
+        node: &tree_sitter::Node<'_>,
         blocks: &mut Vec<Block>,
         text: &str,
     ) -> Result<(), anyhow::Error> {
@@ -80,6 +84,8 @@ impl Handle {
                         .count()
                 })
                 .sum();
+
+            #[allow(clippy::as_conversions)]
             let avg_words_per_line = total_word_count as f32 / line_count as f32;
 
             let block = Block {
@@ -109,8 +115,12 @@ impl Handle {
         }
     }
 
+    #[allow(clippy::indexing_slicing)]
     pub fn get_block(&self, target_row: usize, target_col: usize) -> Option<Block> {
-        let blocks = self.blocks.read().expect("Failed to read blocks");
+        let blocks = match self.blocks.read() {
+            Ok(blocks) => blocks,
+            Err(_) => return None,
+        };
 
         // First, do a binary search to find blocks containing the target row
         let mut left = 0;

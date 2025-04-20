@@ -10,7 +10,7 @@ pub struct Registry {
 
 impl Registry {
     pub fn new() -> Self {
-        Registry {
+        Self {
             keyword_registry: Arc::new(DashMap::new()),
         }
     }
@@ -33,10 +33,13 @@ impl Registry {
     fn generate_keywords(
         &self,
         content: &super::Block,
-        model: &KeywordExtractionModel,
+        model: &KeywordExtractionModel<'_>,
     ) -> anyhow::Result<Vec<String>> {
         let text = content.text.clone();
-        let output = model.predict(&[text])?[0]
+        let output = model
+            .predict(&[text])?
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No keywords found"))?
             .iter()
             .filter(|x| x.score > 0.4)
             .map(|x| x.text.clone())

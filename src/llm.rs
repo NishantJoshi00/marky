@@ -34,7 +34,7 @@ impl Client {
 impl Llm for Client {
     async fn generate(&self, instruction: &str, prompt: &str) -> anyhow::Result<String> {
         match self {
-            Client::Ollama(client) => client.generate(instruction, prompt).await,
+            Self::Ollama(client) => client.generate(instruction, prompt).await,
         }
     }
 }
