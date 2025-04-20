@@ -32,12 +32,12 @@ fn benchmark_handler_new(c: &mut Criterion) {
 
     c.bench_function("handler.new", |b| {
         b.iter(|| {
-            let handle = Handle::new(black_box(&code), black_box(&mut parser)).expect("Failed to create handle");
+            let handle = Handle::new(black_box(&code), black_box(&mut parser))
+                .expect("Failed to create handle");
             let _ = black_box(handle);
         });
     });
 }
-
 
 fn benchmark_handler_update_no_change(c: &mut Criterion) {
     let code = [
@@ -76,11 +76,16 @@ fn benchmark_handler_update_no_change(c: &mut Criterion) {
             let code = black_box(&code);
             let parser = black_box(&mut parser);
 
-            handle.update(code, parser).expect("Failed to update handle");
+            handle
+                .update(code, parser)
+                .expect("Failed to update handle");
         })
     });
 }
 
-
-criterion_group!(benches, benchmark_handler_new, benchmark_handler_update_no_change);
+criterion_group!(
+    benches,
+    benchmark_handler_new,
+    benchmark_handler_update_no_change
+);
 criterion_main!(benches);

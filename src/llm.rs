@@ -1,6 +1,5 @@
 pub mod ollama;
 
-
 #[async_trait::async_trait]
 pub trait Llm {
     async fn generate(&self, instruction: &str, prompt: &str) -> anyhow::Result<String>;

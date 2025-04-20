@@ -158,14 +158,12 @@ impl LanguageServer for Backend {
                 ]
                 .join("\n");
 
-
                 #[cfg(feature = "intelligence")]
                 let keywords = self.project.registry.get_keywords(&block);
                 #[cfg(not(feature = "intelligence"))]
                 let keywords: Option<Vec<String>> = None;
 
                 let mut data = ["[statistics]", &stats].join("\n");
-
 
                 if let Some(keywords) = keywords {
                     let keywords = keywords
