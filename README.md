@@ -20,7 +20,7 @@ Marky is a Language Server Protocol (LSP) implementation for Markdown files that
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/marky.git
+git clone https://github.com/NishantJoshi00/marky.git
 cd marky
 
 # Build the project
