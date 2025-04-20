@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
+
+#[cfg(feature = "intelligence")]
 use tokio::task;
+
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::{LanguageServer, lsp_types};
 
@@ -57,6 +60,7 @@ impl Artifacts {
 
 pub struct Project {
     pub current_file: Arc<RwLock<Option<handler::Handle>>>,
+    #[cfg(feature = "intelligence")]
     pub registry: handler::registry::Registry,
 }
 
@@ -73,6 +77,7 @@ impl Backend {
             artifacts: Arc::new(RwLock::new(Artifacts::Lazy)),
             project: Project {
                 current_file: Arc::new(RwLock::new(None)),
+                #[cfg(feature = "intelligence")]
                 registry: handler::registry::Registry::new(),
             },
         }
@@ -153,8 +158,14 @@ impl LanguageServer for Backend {
                 ]
                 .join("\n");
 
+
+                #[cfg(feature = "intelligence")]
                 let keywords = self.project.registry.get_keywords(&block);
+                #[cfg(not(feature = "intelligence"))]
+                let keywords: Option<Vec<String>> = None;
+
                 let mut data = ["[statistics]", &stats].join("\n");
+
 
                 if let Some(keywords) = keywords {
                     let keywords = keywords
@@ -205,6 +216,9 @@ impl LanguageServer for Backend {
 
         info!(self, "parsing file: {}", params.text_document.uri);
 
+        #[cfg(feature = "intelligence")]
+        let _ = self.project.registry.garbage_collect();
+
         let handle = match handler::Handle::new(&contents, &mut parser) {
             Ok(handle) => handle,
             Err(e) => {
@@ -215,6 +229,7 @@ impl LanguageServer for Backend {
 
         info!(self, "parsed file: {}", params.text_document.uri);
 
+        #[cfg(feature = "intelligence")]
         if let Ok(blocks) = handle.blocks.clone().read() {
             let registry = self.project.registry.clone();
             let blocks = blocks.clone();
@@ -249,6 +264,18 @@ impl LanguageServer for Backend {
                 if handle.update(&text, &mut parser).is_err() {
                     error!(self, "Failed to update file: {}", changes.text_document.uri);
                     return;
+                }
+
+                #[cfg(feature = "intelligence")]
+                if let Ok(blocks) = handle.blocks.clone().read() {
+                    let registry = self.project.registry.clone();
+                    let blocks = blocks.clone();
+
+                    task::spawn_blocking(move || {
+                        let _ = registry.index_text(&blocks);
+                    });
+                } else {
+                    error!(self, "Failed to read blocks");
                 }
             }
         } else {

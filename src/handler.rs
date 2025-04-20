@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use std::sync::RwLock;
 
+#[cfg(feature = "intelligence")]
 pub mod registry;
 
 #[derive(Debug, Clone)]
