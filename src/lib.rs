@@ -9,7 +9,7 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::{LanguageServer, lsp_types};
 
 mod config;
-mod embedding;
+pub mod embedding;
 pub mod handler;
 mod llm;
 
@@ -163,17 +163,32 @@ impl LanguageServer for Backend {
                 #[cfg(not(feature = "intelligence"))]
                 let keywords: Option<Vec<String>> = None;
 
+                #[cfg(feature = "intelligence")]
+                let summary = self.project.registry.get_summary(&block);
+                #[cfg(not(feature = "intelligence"))]
+                let summary: Option<String> = None;
+
                 let mut data = ["[statistics]", &stats].join("\n");
 
-                if let Some(keywords) = keywords {
-                    let keywords = keywords
-                        .iter()
-                        .map(|value| format!("\"{}\"", value))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    data.push_str(
-                        &["", "[analytics]", &format!("keywords = [{}]", keywords)].join("\n"),
-                    );
+                match (keywords, summary) {
+                    (None, None) => {}
+                    (a, b) => {
+                        let mut list = vec!["".to_string(), "[analytics]".to_string()];
+
+                        if let Some(keyword) = a {
+                            let keywords = keyword
+                                .iter()
+                                .map(|value| format!("\"{}\"", value))
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            list.push(format!("keywords = [{}]", keywords));
+                        }
+
+                        if let Some(summary) = b {
+                            list.push(format!("summary = \"{}\"", summary));
+                        }
+                        data.push_str(&list.join("\n"));
+                    }
                 }
 
                 let hover = lsp_types::Hover {
@@ -230,10 +245,20 @@ impl LanguageServer for Backend {
         #[cfg(feature = "intelligence")]
         if let Ok(blocks) = handle.blocks.clone().read() {
             let registry = self.project.registry.clone();
-            let blocks = blocks.clone();
+            let heavy_blocks = blocks.clone();
 
             task::spawn_blocking(move || {
-                let _ = registry.index_text(&blocks);
+                let _ = registry.index_text(&heavy_blocks);
+            });
+
+            let blocks = blocks.clone();
+            let registry = self.project.registry.clone();
+            let artifacts = self.artifacts.clone();
+
+            task::spawn(async move {
+                if let Ok(en) = artifacts.read().await.embedding() {
+                    let _ = registry.embed_text(&blocks, en).await;
+                }
             });
         } else {
             error!(self, "Failed to read blocks");
