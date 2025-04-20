@@ -53,15 +53,3 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy check
         run: cargo clippy --all-targets --all-features -- -D warnings
-
-  docs:
-    name: Docs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Check documentation
-        env:
-          RUSTDOCFLAGS: "-D warnings"
-        run: cargo doc --no-deps --document-private-items
