@@ -1,4 +1,6 @@
-# Marky <img src="/assets/logo.png" alt="Marky Logo" align="right" width="150" />
+<img src="/assets/logo.png" alt="Marky Logo" align="center" width="150" />
+
+# Marky 
 
 Marky is a Language Server Protocol (LSP) implementation for Markdown files that leverages embeddings and LLMs to provide intelligent assistance and insights for your documentation.
 
