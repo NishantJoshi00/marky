@@ -139,6 +139,21 @@ marky_handler()
 
 VSCode support is planned but not yet implemented.
 
+### [Kate](https://kate-editor.org/)
+
+If you checkout the repo at ```${HOME}/repos/github.com/NishantJoshi00/marky``` then  
+you should add the following to your ${HOME}/.config/kate/lspclient/settings.json file
+
+```
+"markdown": {
+    "root": "${HOME}/repos/github.com/NishantJoshi00/marky",
+    "command": ["cargo", "run", "--release", "--bin", "marky-stdio", "--quiet"],
+    "filetypes": ["markdown", "md"],
+    "url": "https://github.com/NishantJoshi00/marky",
+    "highlightingModeRegex": "^Markdown$"
+},
+```
+
 ### Other LSP-compatible Editors
 
 Marky can be integrated with any editor that supports LSP clients. The general configuration needs:
